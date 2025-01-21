@@ -8,12 +8,13 @@ from aiohttp import ClientSession
 from tqdm import tqdm
 
 from type import MCMap
+from utils import is_zip_file_valid
 
 globals()["root_url"] = "https://www.minecraftmaps.com"
 
 
 async def download_map(session: ClientSession, map_url: str, map_name: str, no_skip: bool):
-    if os.path.exists(f"./data/maps/{map_name}.zip") and not no_skip:
+    if os.path.exists(f"./data/maps/{map_name}.zip") and not no_skip and is_zip_file_valid(f"./data/maps/{map_name}.zip"):
         return
     async with session.get(map_url, headers={"Referer": map_url}) as response:
         result = await response.read()
