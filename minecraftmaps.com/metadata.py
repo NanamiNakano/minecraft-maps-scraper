@@ -1,14 +1,16 @@
 import asyncio
 import os
 from typing import List
+
 import bs4.element
 import jsonpickle
-from tqdm import tqdm
 import requests
-from bs4 import BeautifulSoup
-from type import MCMap
 from aiohttp import ClientSession
+from bs4 import BeautifulSoup
 from markdownify import markdownify as md
+from tqdm import tqdm
+
+from type import MCMap
 
 globals()["root_url"] = "https://www.minecraftmaps.com"
 
@@ -80,8 +82,8 @@ async def get_metadata(session: ClientSession, map_tag: bs4.element.Tag) -> MCMa
         description_html = "\n".join(html_strs)
 
         mc_map = MCMap(name=name, download_url=download_url, creator=creator, rating=rating, map_version=map_version,
-                     mc_version=mc_version, date_added=date_added, download_count=download_count,
-                     description_md=description_md, description_html=description_html)
+                       mc_version=mc_version, date_added=date_added, download_count=download_count,
+                       description_md=description_md, description_html=description_html)
         return mc_map
 
 

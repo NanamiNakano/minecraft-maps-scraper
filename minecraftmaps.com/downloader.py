@@ -5,9 +5,9 @@ from typing import List
 
 import jsonpickle
 from aiohttp import ClientSession
+from tqdm import tqdm
 
 from type import MCMap
-from tqdm import tqdm
 
 globals()["root_url"] = "https://www.minecraftmaps.com"
 
@@ -20,10 +20,12 @@ async def download_map(session: ClientSession, map_url: str, map_name: str, no_s
         with open(f"./data/maps/{map_name}.zip", "wb") as f:
             f.write(result)
 
+
 async def download(metadata: List[MCMap], no_skip: bool):
     for i in tqdm(range(0, len(metadata), 5)):
         async with ClientSession() as session:
-            await asyncio.gather(*[download_map(session, map.download_url, map.name, no_skip) for map in metadata[i:i+5]])
+            await asyncio.gather(
+                *[download_map(session, map.download_url, map.name, no_skip) for map in metadata[i:i + 5]])
 
 
 if __name__ == "__main__":
