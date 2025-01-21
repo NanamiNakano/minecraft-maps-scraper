@@ -36,7 +36,7 @@ def get_maps_tag() -> List[bs4.element.Tag]:
     return map_tags
 
 
-async def get_metadata(session: ClientSession, map_tag: bs4.element.Tag) -> MCMap:
+async def get_metadata(session: ClientSession, map_tag: bs4.element.Tag) -> MCMap | None:
     root_url = globals()["root_url"]
     async with session.get(root_url + map_tag["href"]) as response:
         map_soup = BeautifulSoup(await response.text(), "html5lib")
@@ -45,7 +45,17 @@ async def get_metadata(session: ClientSession, map_tag: bs4.element.Tag) -> MCMa
         name = name_tag.text
 
         download_tag = map_soup.select_one("center > a.jdbutton")
-        download_url = root_url + download_tag["href"]
+        raw_download_url = root_url + download_tag["href"]
+        async with session.get(raw_download_url, headers={"Referer": raw_download_url}) as download_response:
+            content_type = download_response.headers.get("Content-Type", "")
+            if "application/zip" not in content_type:
+                redirect_text = await download_response.text()
+                redirect_url = redirect_text.split("='")[1].split("';")[0]
+                if "mediafire" in redirect_url or "adf.ly" in redirect_url:
+                    return None
+                download_url = redirect_url
+            else:
+                download_url = raw_download_url
 
         creator_tag = map_soup.select_one(
             ".stats_data > table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2) > span:nth-child(1)")
@@ -91,15 +101,18 @@ async def scrape(map_tags: List[bs4.element.Tag]) -> List[MCMap]:
     results = []
     for i in tqdm(range(0, len(map_tags), 5)):
         async with ClientSession() as session:
-            results.extend(await asyncio.gather(*[get_metadata(session, map_tag) for map_tag in map_tags[i:i + 5]]))
+            results.extend(list(filter(lambda x: x is not None, (
+                await asyncio.gather(*[get_metadata(session, map_tag) for map_tag in map_tags[i:i + 5]])))))
     return results
 
 
 if __name__ == "__main__":
     print("Scraping map tags")
     tags = get_maps_tag()
-    print("Scraping metadata")
+    print(f"Scraped {len(tags)} map tags.")
+    print("Scraping metadata and filtering out invalid maps")
     metadata = asyncio.run(scrape(tags))
+    print(f"Scraped {len(metadata)} valid maps.")
     os.makedirs("./data", exist_ok=True)
     with open("./data/metadata.json", "w") as f:
         f.write(jsonpickle.encode(metadata))
